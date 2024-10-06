@@ -9,19 +9,23 @@ global Semaphore[N] puedeTomar = new Semaphore(5);
 global Semaphore[N] mutexBicicleta = new Semaphore(1);
 
 thread Persona(puntoSalida, puntoDestino):{
+  //Llega al bicicletero puntoSalida
   puedeTomar[puntoSalida].acquire();
   mutexBicicleta[puntoSalida].acquire();
   bicicleteros[puntoSalida]--;
   mutexBicicleta[puntoSalida].release();
   puedeDejar[puntoSalida].release();
+  //Sale del bicicletero puntoSalida
 
   //Viaja del puntoSalida al puntoDestino
 
+  //Llega al bicicletero puntoDestino
   puedeDejar[puntoDestino].acquire();
   mutexBicicleta[puntoDestino].acquire();
   bicicleteros[puntoDestino]++;
   mutexBicicleta[puntoDestino].release();
   puedeTomar[puntoDestino].release();
+  //Sale del bicicletero puntoSalida
 }
 
 //B)
@@ -55,6 +59,7 @@ thread Camion():{
 }
 
 thread Persona(puntoSalida, puntoDestino):{
+  //Llega al bicicletero puntoSalida
   puedeTomar[puntoSalida].acquire();
   mutexBicicleta[puntoSalida].acquire();
   int k = 0;
@@ -63,10 +68,12 @@ thread Persona(puntoSalida, puntoDestino):{
   bicicleteros[puntoSalida][k] = NULL;
   mutexBicicleta[puntoSalida].release();
   puedeDejar[puntoSalida].release();
+  //Sale del bicicletero puntoSalida
 
   //Viaja del puntoSalida al puntoDestino
   print(f"Viajo del bicicletero {puntoSalida} al bicicletero {puntoDestino} en la bicicleta {miBicicleta}";
 
+  //Llega al bicicletero puntoDestino
   puedeDejar[puntoDestino].acquire();
   mutexBicicleta[puntoDestino].acquire();
   k = 0;
@@ -75,4 +82,96 @@ thread Persona(puntoSalida, puntoDestino):{
   miBicicleta = NULL;
   mutexBicicleta[puntoDestino].release();
   puedeTomar[puntoDestino].release();
+  //Sale del bicicletero puntoDestino
+}
+
+//C)
+
+global int[N] bicicleteros[10] = [[],[],...,[]];
+global int bicicletasTotales = 5N;
+global int bicicletas[5N] = [0,1,...,5N-1];
+global int[N] personasEnBicicletero = [0,0,...,0];
+
+global Semaphore[N] puedeDejar = new Semaphore(5);
+global Semaphore[N] puedeTomar = new Semaphore(0);
+global Semaphore[N] mutexBicicleta = new Semaphore(1);
+global Semaphore[N] camionTermino = new Sempahore(0);
+global Semaphore[N] permisoMantenimiento = new Semaphore(0);
+global Semaphore[N] mutexPersonas = new Semaphore(1);
+
+thread personalMantenimiento(){
+  int bicicletero = random(0,N-1);
+  //Llega al bicicletero
+  //Espera a que termine el camión
+  camionTermino[bicicletero].acquire();
+  permisoMantenimiento[bicicletero].acquire();
+  //Realiza mantenimiento
+  permisoMantenimiento[bicicletero].release();
+  //Sale del bicicletero
+}
+
+thread Camion():{
+  while(bicicletasTotales>0){
+    int destino = random(0,N-1);
+    //Llega al bicicletero destino
+    repeat(5){
+      puedeDejar[destino].acquire();
+      mutexBicicleta[destino].acquire();
+      int j = 0;
+      while(bicicleteros[destino][j] != NULL) {j++;}
+      bicicletas[destino][j] = bicicletas[0];
+      local[bicicletasTotales - 1 ];
+      for(i=0;i++;i<bicicletasTotales){
+        local[i] = bicicletas[i];
+      }
+      bicicletas = local;
+      bicletasTotales--;
+      mutexBicicleta[destino].release();
+    }
+    camionTermino[destino].release();
+    //Sale del bicicletero destino
+  }
+}
+
+thread Persona(puntoSalida, puntoDestino):{
+  //Llega al bicicletero puntoSalida
+  puedeTomar[puntoSalida].acquire();
+  mutexPersona[puntoSalida].acquire();
+  personasEnBicicletero[puntoSalida]++;
+  if(personasEnBicicletero[puntoSalida]==1){permisoMantenimiento[puntoSalida].acquire();}
+  mutexPersona[puntoSalida].release();
+  mutexBicicleta[puntoSalida].acquire();
+  int k = 0;
+  while(bicicleteros[puntoSalida][k] != NULL) {k++;}
+  int miBicicleta = bicicleteros[puntoSalida][k];
+  bicicleteros[puntoSalida][k] = NULL;
+  mutexBicicleta[puntoSalida].release();
+  mutexPersona[puntoSalida].acquire();
+  personasEnBicicletero[puntoSalida]--;
+  if(personasEnBicicletero[puntoSalida]==0){permisoMantenimiento[puntoSalida].acquire();}
+  mutexPersona[puntoSalida].release();
+  puedeDejar[puntoSalida].release();
+  //Salde del bicicletero puntoSalida
+
+  //Viaja del puntoSalida al puntoDestino
+  print(f"Viajo del bicicletero {puntoSalida} al bicicletero {puntoDestino} en la bicicleta {miBicicleta}";
+
+  //Llega al bicicletero puntoDestino
+  puedeDejar[puntoDestino].acquire();
+  mutexPersona[puntoDestino].acquire();
+  personasEnBicicletero[puntoDestino]++;
+  if(personasEnBicicletero[puntoDestino]==1){permisoMantenimiento[puntoDestino].acquire();}
+  mutexPersona[puntoDestino].release();
+  mutexBicicleta[puntoDestino].acquire();
+  k = 0;
+  while(bicicleteros[puntoDestino][k] != NULL) {k++;}
+  bicicleteros[puntoDestino][k] = miBicicleta;
+  miBicicleta = NULL;
+  mutexBicicleta[puntoDestino].release();
+  mutexPersona[puntoDestino].acquire();
+  personasEnBicicletero[puntoDestino]--;
+  if(personasEnBicicletero[puntoDestino]==0){permisoMantenimiento[puntoDestino].acquire();}
+  mutexPersona[puntoDestino].release();
+  puedeTomar[puntoDestino].release();
+  //Salde del bicicletero puntoDestino
 }
